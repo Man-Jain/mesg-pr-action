@@ -1,0 +1,9 @@
+name: 'Mesg-Foundation PR Action'
+description: 'Reviews PR'
+inputs:
+  repo-token:
+    description: "a github token for API access"
+    required: true
+runs:
+  using: 'node12'
+  main: 'index.js'
