@@ -5,8 +5,8 @@ const request = require('request');
 async function runAction() {
   try {
   // `who-to-greet` input defined in action metadata file
-  //const token = core.getInput('token');
-  const repoToken = ' c49509e3f03ffe86dfdfab2c81b295fba0b65e2a';
+  const repoToken = core.getInput('token');
+  //const repoToken = 'c49509e3f03ffe86dfdfab2c81b295fba0b65e2a';
   console.log(`Token is  ${repoToken}!`);
   //const {
       //payload: { pull_request: pullRequest, repository }
@@ -36,6 +36,7 @@ async function runAction() {
     console.error('error:', error); // Print the error if one occurred
     console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
     console.log('body:', body); // Print the HTML for the Google homepage.
+    core.setOutput(body)
   });
 } catch (error) {
   core.setFailed(error.message);
