@@ -1,43 +1,86 @@
 const core = require('@actions/core')
 const github = require('@actions/github')
-const request = require('request');
+
+async function addLibraryLabels(files, owner, repo, pullNumber) {
+  const labels = {
+    compiler: ['@mesg/compiler'],
+    api: ['@mesg/api'],
+    application: ['@mesg/application'],
+    compiler: ['@mesg/compiler'],
+    service: ['@mesg/compiler']
+  }
+  files.data.forEach(async function(file){
+    const library = file.filename.split('/')[1];
+    if (library in labels) {
+      const labelToAdd = labels[library];
+      await octokit.issues.addLabels({
+        owner,
+        repo,
+        issue_number: pullNumber,
+        labels: labelToAdd
+      })
+      core.setOutput('Label Added', labelToAdd[0])
+    }
+  })
+}
+
+function checkChangeLog(files) {
+  const libraries = [ "compiler","api","application","compiler","service" ]
+
+  const changeLogFiles = files.data.filter(function(file){
+    return file.filename.split('/').reverse()[0] == "CHANGELOG.md";
+  })
+  const libraryFiles = files.data.filter(function(file){
+    return libraries.includes(file.filename.split('/')[1]) && file.filename.split('/').reverse()[0] != "CHANGELOG.md";
+  })
+
+  libraryFiles.forEach(function(file){
+    const libraryName = file.filename;
+    const changelogforLibrary = changeLogFiles.filter(function(file){
+      return file.filename.split('/').[1] == libraryName;
+    })
+    if (!changelogforLibrary){
+      core.setFailed('No CHANGELOG.md found for ', libraryName);
+    }
+  })
+  core.setOutput("CHANGELOG.md found for all Libraries");
+}
+
+function checkDescription(pullRequest) {
+  const { body: pullBody } = pullRequest;
+  if(!pullBody){
+    core.setFailed('No Description Found for Pull Request');
+  }
+  core.setOutput("Correct Description for Pull Request");
+}
 
 async function runAction() {
   try {
-  // `who-to-greet` input defined in action metadata file
-  const repoToken = core.getInput('token');
-  //const repoToken = 'c49509e3f03ffe86dfdfab2c81b295fba0b65e2a';
-  console.log(`Token is  ${repoToken}!`);
-  //const {
-      //payload: { pull_request: pullRequest, repository }
-    //} = github.context;
+    const repoToken = core.getInput('token');
+    const {
+    payload: { pull_request: pullRequest, repository }
+    } = github.context;
 
-  //if (!pullRequest) {
-    //core.error("No Pull Request");
-    //core.setOutput("comment-created", "false");
-    //return;
-  //}
+    if (!pullRequest) {
+      core.error("No Pull Request");
+      core.setOutput("comment-created", "false");
+      return;
+    }
+    const { number: pullNumber } = pullRequest;
+    const { full_name: repoFullName } = repository;
+    const [owner, repo] = repoFullName.split("/");
+    const octokit = new github.GitHub(repoToken);
 
-  const owner = 'Man-Jain'
-  const repo = 'Polling-App'
+    const pullFiles = await octokit.pulls.listFiles({
+      owner,
+      repo,
+      pull_number: pullNumber
+    });
 
-  const octokit = new github.GitHub(repoToken);
-  const list = await octokit.pulls.list({
-    owner,
-    repo
-  });
+    await addLibraryLabels(pullFiles, owner, repo, pullNumber);
+    checkDescription(pullRequest);
+    checkChangeLog(pullFiles);
 
-  const number = list.data[0].number
-  const url = list.data[0].url;
-
-  fileApi = url + '/files';
-
-  request('https://reqres.in/api/users?page=2', function (error, response, body) {
-    console.error('error:', error); // Print the error if one occurred
-    console.log('statusCode:', response && response.statusCode); // Print the response status code if a response was received
-    console.log('body:', body); // Print the HTML for the Google homepage.
-    core.setOutput(body)
-  });
 } catch (error) {
   core.setFailed(error.message);
   console.log(error);
