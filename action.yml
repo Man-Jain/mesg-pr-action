@@ -5,7 +5,7 @@ inputs:
     description: "a github token for API access"
     required: true
 outputs:
-  time: # id of output
+  log:
     description: 'The output'
 runs:
   using: 'node12'

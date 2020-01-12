@@ -2,6 +2,8 @@ const core = require('@actions/core')
 const github = require('@actions/github')
 var request = require('request');
 
+var octokit;
+
 async function addLibraryLabels(files, owner, repo, pullNumber) {
   const labels = {
     compiler: ['@mesg/compiler'],
@@ -120,7 +122,7 @@ async function runAction() {
     const { number: pullNumber } = pullRequest;
     const { full_name: repoFullName } = repository;
     const [owner, repo] = repoFullName.split("/");
-    const octokit = new github.GitHub(repoToken);
+    octokit = new github.GitHub(repoToken);
 
     const pullFiles = await octokit.pulls.listFiles({
       owner,
